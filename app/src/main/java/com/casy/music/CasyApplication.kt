@@ -25,6 +25,13 @@ class CasyApplication : Application(), Configuration.Provider {
     // Scope aplikasi — tidak dibatalkan selama aplikasi hidup
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
+    // ──────────────────────────────────────────────────────────────────────────
+    // FIX: workManagerConfiguration menggunakan HiltWorkerFactory agar
+    // @HiltWorker / @AssistedInject pada DownloadWorker bisa di-resolve.
+    // Tanpa ini WorkManager mencoba instantiate DownloadWorker via refleksi
+    // dengan constructor 2-arg yang tidak ada →
+    // ExceptionInInitializerError "not a concrete class".
+    // ──────────────────────────────────────────────────────────────────────────
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder()
             .setWorkerFactory(workerFactory)
@@ -33,29 +40,16 @@ class CasyApplication : Application(), Configuration.Provider {
     override fun onCreate() {
         super.onCreate()
 
-        // ──────────────────────────────────────────────────────────────────────
         // PENTING: YoutubeDL.init() melakukan I/O disk (extract binary ke cache)
-        // yang bisa memakan waktu 500ms – 1500ms.
         // Jalankan di background agar main thread tidak diblokir (ANR / jank).
-        // AudioExtractor sudah aman: ia juga berjalan di Dispatchers.IO.
-        // ──────────────────────────────────────────────────────────────────────
         applicationScope.launch(Dispatchers.IO) {
             try {
                 YoutubeDL.getInstance().init(this@CasyApplication)
                 Log.i(TAG, "YoutubeDL berhasil diinisialisasi")
 
-                // ── Update yt-dlp binary secara otomatis ──────────────────────
-                // YouTube terus mengubah format & signature tiap beberapa minggu.
-                // Tanpa update rutin, yt-dlp lama akan gagal dengan error
-                // "Requested format is not available" atau 403.
-                //
-                // UpdateChannel.STABLE = rilis stabil (direkomendasikan production)
-                // UpdateChannel.NIGHTLY = rilis harian (lebih baru tapi mungkin ada bug)
-                //
-                // updateYoutubeDL() aman dipanggil setiap launch:
-                //  - Jika tidak ada update → selesai dalam < 1 detik (cek versi saja)
-                //  - Jika ada update → download binary baru di background
-                // ──────────────────────────────────────────────────────────────
+                // Update yt-dlp binary secara otomatis setiap launch.
+                // Jika tidak ada update → selesai < 1 detik (cek versi saja).
+                // Jika ada update → download binary baru di background.
                 try {
                     val status = YoutubeDL.getInstance()
                         .updateYoutubeDL(this@CasyApplication, YoutubeDL.UpdateChannel.STABLE)
