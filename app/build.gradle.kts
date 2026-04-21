@@ -34,11 +34,6 @@ android {
         ndk {
             abiFilters += listOf("arm64-v8a", "x86_64")
         }
-
-        ksp {
-            arg("room.schemaLocation", "$projectDir/schemas")
-            arg("room.incremental", "true")
-        }
     }
 
     buildTypes {
@@ -157,5 +152,7 @@ hilt {
 }
 
 ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+    arg("room.incremental", "true")
     arg("dagger.hilt.disableModulesHaveInstallInCheck", "false")
 }

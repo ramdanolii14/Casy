@@ -18,18 +18,22 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object DatabaseModule {
 
-    @Provides @Singleton
+    @Provides
+    @Singleton
     fun provideCasyDatabase(@ApplicationContext context: Context): CasyDatabase =
         Room.databaseBuilder(context, CasyDatabase::class.java, AppConstants.DATABASE_NAME)
             .fallbackToDestructiveMigration()
             .build()
 
-    @Provides @Singleton
+    @Provides
+    @Singleton
     fun provideSongDao(db: CasyDatabase): SongDao = db.songDao()
 
-    @Provides @Singleton
+    @Provides
+    @Singleton
     fun provideHistoryDao(db: CasyDatabase): HistoryDao = db.historyDao()
 
-    @Provides @Singleton
+    @Provides
+    @Singleton
     fun provideLibraryDao(db: CasyDatabase): LibraryDao = db.libraryDao()
 }

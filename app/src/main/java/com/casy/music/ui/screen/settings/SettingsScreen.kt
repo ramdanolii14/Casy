@@ -82,7 +82,7 @@ fun SettingsScreen(
             SettingsInfoItem(
                 icon = Icons.Default.Info,
                 title = "Versi Aplikasi",
-                subtitle = "1.0.0"
+                subtitle = "1.0.1"
             )
         }
     }
