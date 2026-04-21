@@ -13,12 +13,18 @@
 
 # ==================== Gson ====================
 -keepattributes *Annotation*
+-keepattributes RuntimeVisibleAnnotations
 -keep class com.google.gson.** { *; }
 -keep class com.casy.music.data.remote.dto.** { *; }
 
 # ==================== Room ====================
+# Keep abstract RoomDatabase subclass dan semua @Dao interface-nya.
+# R8 kadang strip implementasi @Dao yang di-generate karena tidak ada
+# referensi statis langsung ke kelas generated-nya.
 -keep class * extends androidx.room.RoomDatabase
--keep @androidx.room.Entity class *
+-keep @androidx.room.Entity class * { *; }
+-keep @androidx.room.Dao interface * { *; }
+-keep @androidx.room.Database class * { *; }
 -dontwarn androidx.room.paging.**
 
 # ==================== Hilt ====================
@@ -28,9 +34,10 @@
 -keep @dagger.hilt.android.lifecycle.HiltViewModel class * { *; }
 -keep @androidx.hilt.work.HiltWorker class * { *; }
 
-# FIX: Keep Hilt-generated worker factories.
-# R8 sebelumnya men-strip kelas konkret factory yang di-generate Hilt
-# sehingga hanya interface-nya yang tersisa → "not a concrete class" crash.
+# Keep Hilt-generated worker factories.
+# DownloadWorker menggunakan @HiltWorker + @AssistedInject — Hilt men-generate
+# factory konkret saat compile time. Tanpa rule ini R8 men-strip implementasi
+# konkretnya → "not a concrete class" crash saat WorkManager mencoba membuat worker.
 -keep class * extends androidx.hilt.work.WorkerAssistedFactory { *; }
 -keep @dagger.assisted.AssistedFactory class * { *; }
 -keep class **_AssistedFactory { *; }
@@ -54,9 +61,33 @@
 -dontwarn org.mozilla.**
 -dontwarn com.grack.**
 
-# ==================== YoutubeDL-Android ====================
+# ==================== YoutubeDL-Android + FFmpeg ====================
 -keep class com.yausername.youtubedl_android.** { *; }
--dontwarn com.yausername.youtubedl_android.**
+-keep class com.yausername.ffmpeg.** { *; }
+-dontwarn com.yausername.**
+
+# ==================== Chaquopy (Python runtime) ====================
+-keep class com.chaquo.python.** { *; }
+-dontwarn com.chaquo.python.**
+
+# ==================== Apache Commons Compress ====================
+# FIX CRASH: YoutubeDL.initPython() menggunakan Commons Compress untuk mengekstrak
+# binary Python dari ZIP. ExtraFieldUtils.<clinit> mendaftarkan semua implementasi
+# ZipExtraField (termasuk AsiExtraField) via refleksi.
+#
+# Dari mapping.txt yang dianalisis:
+#   U4.a = org.apache.commons.compress.archivers.zip.AsiExtraField  ← kelas yang crash
+#   U4.D = org.apache.commons.compress.archivers.zip.ZipExtraField   ← interface-nya
+#   U4.C = org.apache.commons.compress.archivers.zip.ZipEncodingHelper ← yang punya <clinit>
+#
+# R8 tidak bisa melihat registrasi reflektif ini → strip AsiExtraField → crash.
+-keep class org.apache.commons.compress.** { *; }
+-dontwarn org.apache.commons.compress.**
+
+# ==================== Native methods ====================
+-keepclasseswithmembers class * {
+    native <methods>;
+}
 
 # ==================== Coroutines ====================
 -keepnames class kotlinx.coroutines.internal.MainDispatcherFactory {}

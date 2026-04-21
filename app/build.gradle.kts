@@ -75,6 +75,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.activity.compose)
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.3")
 
     // Compose BOM
     implementation(platform(libs.androidx.compose.bom))
@@ -93,7 +94,6 @@ dependencies {
     implementation(libs.hilt.navigation.compose)
     implementation(libs.hilt.work)
     ksp(libs.hilt.work.compiler)
-    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.3")
 
     // Room
     implementation(libs.room.runtime)
@@ -106,7 +106,10 @@ dependencies {
     implementation(libs.okhttp)
     implementation(libs.okhttp.logging)
 
-    // Media3 — ExoPlayer support HLS (m3u8) dan mp4 adaptive out of the box
+    // Media3 — versi dari libs.versions.toml dipakai konsisten.
+    // FIX: duplikasi media3-exoplayer dan media3-datasource dihapus.
+    // Sebelumnya ada 2 deklarasi: satu via libs.* dan satu hardcoded "1.2.1"
+    // yang bisa menyebabkan konflik versi saat R8 melakukan optimization.
     implementation(libs.media3.exoplayer)
     implementation(libs.media3.session)
     implementation(libs.media3.ui)
@@ -118,16 +121,12 @@ dependencies {
     // Coil
     implementation(libs.coil.compose)
 
-    //ffmpeg dan library stuff idk bitch
+    // YoutubeDL-Android + FFmpeg
     implementation("io.github.junkfood02.youtubedl-android:library:0.18.1")
     implementation("io.github.junkfood02.youtubedl-android:ffmpeg:0.18.1")
 
     // DataStore
     implementation(libs.datastore.preferences)
-
-    //exoplayer
-    implementation("androidx.media3:media3-exoplayer:1.2.1")
-    implementation("androidx.media3:media3-datasource:1.2.1")
 
     // Coroutines
     implementation(libs.kotlinx.coroutines.android)
