@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Casy</string>
+    <string name="notification_channel_playback">Casy Music Playback</string>
+    <string name="notification_channel_download">Casy Music Download</string>
+</resources>
