@@ -254,8 +254,9 @@ class NowPlayingViewModel @Inject constructor(
 
     /**
      * Putar lagu berikutnya dari antrian, mempertimbangkan shuffle.
+     * BUG FIX: Hapus keyword 'override' — ViewModel tidak memiliki method ini.
      */
-    override fun skipNext() {
+    fun skipNext() {
         val state = _uiState.value
         if (state.queue.isEmpty()) return
 
@@ -267,8 +268,9 @@ class NowPlayingViewModel @Inject constructor(
 
     /**
      * Putar lagu sebelumnya dari antrian.
+     * BUG FIX: Hapus keyword 'override' — ViewModel tidak memiliki method ini.
      */
-    override fun skipPrevious() {
+    fun skipPrevious() {
         val state = _uiState.value
         if (state.queue.isEmpty()) return
 
@@ -422,20 +424,28 @@ class NowPlayingViewModel @Inject constructor(
             }
 
             try {
-                val quality = userPreferencesDataStore.userPreferences.first().audioQuality
-                val streamInfo = audioExtractor.extractAudioUrl(song.videoId, quality)
+                // Offline playback: jika lagu sudah diunduh, putar file lokal langsung
+                // tanpa perlu koneksi internet atau fetch URL dari server.
+                val audioUrl: String = if (!song.localFilePath.isNullOrBlank()) {
+                    Log.d(TAG, "Memutar dari file lokal: ${song.localFilePath}")
+                    song.localFilePath!!
+                } else {
+                    val quality = userPreferencesDataStore.userPreferences.first().audioQuality
+                    val streamInfo = audioExtractor.extractAudioUrl(song.videoId, quality)
 
-                if (streamInfo == null) {
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            errorMessage = "Gagal mendapatkan URL audio. Cek koneksi internet."
-                        )
+                    if (streamInfo == null) {
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                errorMessage = "Gagal mendapatkan URL audio. Cek koneksi internet."
+                            )
+                        }
+                        return@launch
                     }
-                    return@launch
+                    streamInfo.url
                 }
 
-                playUrl(song, streamInfo.url)
+                playUrl(song, audioUrl)
 
                 historyRepository.addToHistory(
                     HistoryItem(

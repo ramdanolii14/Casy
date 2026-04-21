@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.datasource.DefaultHttpDataSource
+import androidx.media3.datasource.cache.Cache
+import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import com.casy.music.data.remote.extractor.YTDL_UA  // ← import top-level constant
@@ -27,16 +29,22 @@ object AppModule {
      *  - Origin      : https://www.youtube.com
      *  - Referer     : https://www.youtube.com/
      *  - X-YouTube-Client-Name / Version : agar server tahu ini klien Android
+     *
+     * Cache dari MusicModule digunakan sebagai upstream agar streaming
+     * otomatis di-cache hingga 200MB (LRU).
      */
     @Provides
     @Singleton
-    fun provideExoPlayer(@ApplicationContext context: Context): ExoPlayer {
+    fun provideExoPlayer(
+        @ApplicationContext context: Context,
+        cache: Cache
+    ): ExoPlayer {
         val audioAttributes = AudioAttributes.Builder()
             .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
             .setUsage(C.USAGE_MEDIA)
             .build()
 
-        val dataSourceFactory = DefaultHttpDataSource.Factory()
+        val httpFactory = DefaultHttpDataSource.Factory()
             .setUserAgent(YTDL_UA)  // ← langsung pakai top-level constant
             .setAllowCrossProtocolRedirects(true)
             .setConnectTimeoutMs(15_000)
@@ -50,10 +58,15 @@ object AppModule {
                 )
             )
 
+        val cacheFactory = CacheDataSource.Factory()
+            .setCache(cache)
+            .setUpstreamDataSourceFactory(httpFactory)
+            .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
+
         return ExoPlayer.Builder(context)
             .setAudioAttributes(audioAttributes, /* handleAudioFocus= */ true)
             .setHandleAudioBecomingNoisy(true)
-            .setMediaSourceFactory(DefaultMediaSourceFactory(dataSourceFactory))
+            .setMediaSourceFactory(DefaultMediaSourceFactory(cacheFactory))
             .build()
     }
 }

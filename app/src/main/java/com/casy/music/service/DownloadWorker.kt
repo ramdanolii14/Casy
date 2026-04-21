@@ -20,17 +20,32 @@ class DownloadWorker @AssistedInject constructor(
     private val songDao: SongDao
 ) : CoroutineWorker(context, params) {
 
+    companion object {
+        const val KEY_VIDEO_ID    = "videoId"
+        const val KEY_TITLE       = "title"
+        const val KEY_AUDIO_URL   = "audioUrl"
+        const val KEY_OUTPUT_PATH = "outputPath"
+    }
+
     override suspend fun doWork(): Result {
-        val videoId = inputData.getString("videoId") ?: return Result.failure()
-        val title = inputData.getString("title") ?: "Unknown"
+        val videoId    = inputData.getString(KEY_VIDEO_ID)    ?: return Result.failure()
+        val title      = inputData.getString(KEY_TITLE)       ?: "Unknown"
+        val audioUrl   = inputData.getString(KEY_AUDIO_URL)
+        val outputPath = inputData.getString(KEY_OUTPUT_PATH)
 
         return try {
-            val musicDir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC), "Casy Music")
+            val musicDir = File(
+                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC),
+                "Casy Music"
+            )
             if (!musicDir.exists()) musicDir.mkdirs()
 
-            val file = File(musicDir, "$videoId.mp3")
+            val file = if (outputPath != null) File(outputPath)
+            else File(musicDir, "$videoId.mp3")
 
-            val request = YoutubeDLRequest("https://www.youtube.com/watch?v=$videoId")
+            val request = YoutubeDLRequest(
+                audioUrl ?: "https://www.youtube.com/watch?v=$videoId"
+            )
             request.addOption("-f", "bestaudio")
             request.addOption("--extract-audio")
             request.addOption("--audio-format", "mp3")
@@ -38,15 +53,17 @@ class DownloadWorker @AssistedInject constructor(
 
             YoutubeDL.getInstance().execute(request)
 
-            val entity = SongEntity(
-                videoId = videoId,
-                title = title,
-                channelName = inputData.getString("artist") ?: "",
-                thumbnailUrl = inputData.getString("thumbnail") ?: "",
-                localPath = file.absolutePath,
-                isDownloaded = true
+            // Simpan ke Room, lalu update kolom local_file_path via markAsDownloaded
+            songDao.insertSong(
+                SongEntity(
+                    videoId      = videoId,
+                    title        = title,
+                    channelName  = inputData.getString("artist") ?: "",
+                    thumbnailUrl = inputData.getString("thumbnail") ?: "",
+                    isDownloaded = true,
+                    localFilePath = file.absolutePath
+                )
             )
-            songDao.insertSong(entity)
 
             Result.success()
         } catch (e: Exception) {

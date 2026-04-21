@@ -155,3 +155,7 @@ kotlin {
 hilt {
     enableAggregatingTask = false
 }
+
+ksp {
+    arg("dagger.hilt.disableModulesHaveInstallInCheck", "false")
+}

@@ -29,16 +29,19 @@ class DownloadProvider @Inject constructor(
     fun enqueueDownload(videoId: String, title: String, audioUrl: String): Operation {
         val outputPath = File(getCasyMusicFolder(), "${sanitize(title)}.mp3").absolutePath
         val data = workDataOf(
-            DownloadWorker.KEY_VIDEO_ID to videoId,
-            DownloadWorker.KEY_TITLE to title,
-            DownloadWorker.KEY_AUDIO_URL to audioUrl,
+            DownloadWorker.KEY_VIDEO_ID    to videoId,
+            DownloadWorker.KEY_TITLE       to title,
+            DownloadWorker.KEY_AUDIO_URL   to audioUrl,
             DownloadWorker.KEY_OUTPUT_PATH to outputPath
         )
         val request = OneTimeWorkRequestBuilder<DownloadWorker>()
             .setInputData(data)
             .addTag("casy_download")
-            .setConstraints(Constraints.Builder()
-                .setRequiredNetworkType(NetworkType.CONNECTED).build())
+            .setConstraints(
+                Constraints.Builder()
+                    .setRequiredNetworkType(NetworkType.CONNECTED)
+                    .build()
+            )
             .build()
         return WorkManager.getInstance(context).enqueue(request)
     }
@@ -46,5 +49,6 @@ class DownloadProvider @Inject constructor(
     fun getDownloadedFiles(): List<File> =
         getCasyMusicFolder().listFiles { f -> f.extension == "mp3" }?.toList() ?: emptyList()
 
-    private fun sanitize(name: String) = name.replace(Regex("[\\\\/:*?\"<>|]"), "_").take(100)
+    private fun sanitize(name: String) =
+        name.replace(Regex("[\\\\/:*?\"<>|]"), "_").take(100)
 }
